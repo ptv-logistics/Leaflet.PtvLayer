@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+
+<html>
+<head>
+    <title>Leaflet PtvLayers Example</title>
+    <meta content="yes" name="apple-mobile-web-app-capable">
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+    <link href="https://unpkg.com/leaflet@1.3.1/dist/leaflet.css" rel="stylesheet">
+    <link rel="stylesheet" href="forkme.css" />
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+        }
+
+        html,
+        body,
+        #map {
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="github-fork-ribbon-wrapper right-bottom">
+        <div class="github-fork-ribbon">
+            <a href="https://github.com/ptv-logistics/Leaflet.PtvLayer/">Fork me on GitHub</a>
+        </div>
+    </div>
+    <div id="map" />
+    <script src="https://unpkg.com/leaflet@1.3.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.nontiledlayer@1.0.7/dist/NonTiledLayer.js"></script>
+    <script src="https://unpkg.com/jquery@3.2.1/dist/jquery.min.js"></script>
+    <script src="./Leaflet.PtvLayer.js"></script>
+    <script src="./token.js"></script>
+    <script>
+        // initialize leaflet
+        var map = new L.Map('map');
+
+        // set map viewport - try to read them from url parameters
+        var center, zoom;
+        if (isDefined(getUrlPram("lat")) && isDefined(getUrlPram("lng")) && isDefined(getUrlPram("z"))) {
+            center = new L.LatLng(getUrlPram("lat"), getUrlPram("lng"));
+            zoom = getUrlPram("z");
+        } else {
+            center = new L.LatLng(49.01, 8.4);
+            zoom = 16;
+        }
+        map.setView(center, zoom);
+
+        var layers;
+        if (isDefined(getUrlPram("layers"))) {
+            layers = getUrlPram("layers").split(';');
+        } else {
+            layers = ["traffic", "ta", "poi"];
+        }
+        
+        // setting the urls
+        var onPremiseUrl = "http://127.0.0.1:50010"; // local xServer Url
+        var cluster = 'eu-n-test'; // when using xServer-internet, set emply for local xServer
+        var token = window.token? window.token : '';
+        var xMapAttribution = '<a href="http://www.ptvgroup.com">PTV</a>, ' + ((cluster.indexOf('tln') > -1) ? "TOMTOM" : "HERE");
+        var xMapUrl = cluster? 'https://xmap-' + cluster + '.cloud.ptvgroup.com' : onPremiseUrl;
+
+        if (cluster && !token) {
+            var popupMsg = 'Please provide your token in the<br>script code';
+
+            // add a marker in the given location,
+            // attach some popup content to it and open the popup
+            L.marker(center).addTo(map)
+                .bindPopup(popupMsg)
+                .openPopup();
+        }
+
+        // add the xServer layers
+        // set the layer groups for default and sandbox
+        var baseLayers = {
+            "PTV classic": getXMapBaseLayers(cluster, "", token, xMapAttribution, map.getPanes().tilePane),
+            "PTV sandbox": getXMapBaseLayers(cluster, "sandbox", token, xMapAttribution, map.getPanes().tilePane).addTo(map),
+            "PTV silkysand": getXMapBaseLayers(cluster, "silkysand", token, xMapAttribution, map.getPanes().tilePane),
+            "PTV gravelpit": getXMapBaseLayers(cluster, "gravelpit", token, xMapAttribution, map.getPanes().tilePane)
+        };
+
+        // add scale control
+        L.control.scale().addTo(map);
+
+        // add traffic information - use the map&guide-internet multilang profile
+        var traffic = new L.PtvLayer.TrafficInformation.Mgi(xMapUrl, {
+            zIndex: 1, 
+            attribution: xMapAttribution,
+            language: 'EN',
+            token: token
+        });
+        if ($.inArray("traffic", layers) > -1)
+            traffic.addTo(map);
+
+        // add truck attributes
+        var ta = new L.PtvLayer.TruckAttributes(xMapUrl, {
+            zIndex: 2,
+            attribution: xMapAttribution,
+            token: token
+        });
+        if ($.inArray("ta", layers) > -1)
+            ta.addTo(map);
+
+        // add POIs
+        var poi = new L.PtvLayer.POI(xMapUrl, {
+            zIndex: 3,
+            attribution: xMapAttribution,
+//            filter: "[POITYPE]='7321'", // only show hospitals
+//            minZoom: 11, // force to display up to level 11
+            token: token
+        });
+        if ($.inArray("poi", layers) > -1)
+            poi.addTo(map);
+
+        // add layer selector
+        var overlays = {
+            "POIs": poi,
+            "Truck Attributes": ta,
+            "Traffic": traffic
+        };
+        L.control.layers(baseLayers, overlays, {autoZIndex: false}).addTo(map);
+
+        // returns a layer group for xmap back- and foreground layers
+        function getXMapBaseLayers(cluster, style, token, attribution, pane) {
+            var background = L.tileLayer(
+                (cluster? 'https://ajaxbg{s}-' + cluster + '.cloud.ptvgroup.com' : onPremiseUrl) +
+                '/WMS/GetTile/{style}' + '/{x}/{y}/{z}.png', {
+                    style: (style ? 'xmap-' + style + '-bg' : 'xmap-ajaxbg'),
+                    minZoom: 0, maxZoom: 19, opacity: 1.0,
+                    attribution: attribution,
+                    subdomains: '1234'
+                });
+
+            var foreground = new L.NonTiledLayer.WMS(
+                (cluster? 'https://ajaxfg-' + cluster + '.cloud.ptvgroup.com' : onPremiseUrl) +
+                '/WMS/WMS?xtok=' + token, {
+                minZoom: 0, maxZoom: 19, opacity: 1.0,
+                layers: style ? 'xmap-' + style + '-fg' : 'xmap-ajaxfg',
+                format: 'image/png', transparent: true,
+                attribution: attribution,
+				zIndex: 100,
+                pane: pane
+            });
+
+            return L.layerGroup([background, foreground]);
+        } 
+
+        function getUrlPram(name) {
+            if (name = (new RegExp('[?&]' + encodeURIComponent(name) + '=([^&]*)')).exec(location.search))
+                return decodeURIComponent(name[1]);
+        }
+
+        function isDefined(obj) {
+            return !(obj === void 0);
+        }
+    </script>
+</body>
+</html>

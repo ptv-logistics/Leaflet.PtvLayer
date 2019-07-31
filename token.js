@@ -1,1 +1,1 @@
-﻿var token = ''; // enter your xserver internet token here
+﻿var token = 'E4FE7F19-F2FA-4A57-9203-4D88C930CBD8'; // enter your xserver internet token here

@@ -1,4 +1,4 @@
-A Leaflet plugin for PTV xMapServer layers. The package contains:
+A Leaflet plugin for PTV xMapServer-1 layers. The package contains:
 
 Basemap layers with different styles
 * PTV classic

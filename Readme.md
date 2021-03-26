@@ -15,7 +15,7 @@ Advanced FeatureLayer content
 * Speed Patterns
 * Truck Restriction Zones
 * Truck Attributes
-* Traffic Indcidents
+* Traffic Incidents
 
 You can test the layers here http://ptv-logistics.github.io/Leaflet.PtvLayer/
 

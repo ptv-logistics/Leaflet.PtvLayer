@@ -52,7 +52,7 @@
         if (isDefined(getUrlPram("layers"))) {
             layers = getUrlPram("layers").split(';');
         } else {
-            layers = ["traffic", "ta", "poi"];
+            layers = ["ta", "poi"];
         }
         
         // setting the urls
@@ -60,7 +60,7 @@
         var cluster = 'eu-n-test'; // when using xServer-internet, set emply for local xServer
         var token = window.token? window.token : '';
         var xMapAttribution = '<a href="http://www.ptvgroup.com">PTV</a>, ' + ((cluster.indexOf('tln') > -1) ? "TOMTOM" : "HERE");
-        var xMapUrl = cluster? 'https://xmap-' + cluster + '.cloud.ptvgroup.com' : onPremiseUrl;
+        var xMapUrl = cluster? 'https://api-test.cloud.ptvgroup.com' : onPremiseUrl;
 
         if (cluster && !token) {
             var popupMsg = 'Please provide your token in the<br>script code';
@@ -83,16 +83,6 @@
 
         // add scale control
         L.control.scale().addTo(map);
-
-        // add traffic information - use the map&guide-internet multilang profile
-        var traffic = new L.PtvLayer.TrafficInformation.Mgi(xMapUrl, {
-            zIndex: 1, 
-            attribution: xMapAttribution,
-            language: 'EN',
-            token: token
-        });
-        if ($.inArray("traffic", layers) > -1)
-            traffic.addTo(map);
 
         // add truck attributes
         var ta = new L.PtvLayer.TruckAttributes(xMapUrl, {
@@ -117,8 +107,7 @@
         // add layer selector
         var overlays = {
             "POIs": poi,
-            "Truck Attributes": ta,
-            "Traffic": traffic
+            "Truck Attributes": ta
         };
         L.control.layers(baseLayers, overlays, {autoZIndex: false}).addTo(map);
 

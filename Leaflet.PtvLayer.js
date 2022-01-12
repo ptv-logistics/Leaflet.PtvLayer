@@ -47,6 +47,9 @@ L.PtvLayer = L.NonTiledLayer.extend({
         for (var l = 0; l < resp.objects.length; l++) {
             var objects = resp.objects[l].objects;
 
+            if(this._groupObjects)
+                objects = this._groupObjects(objects);
+
             var myIcon = L.divIcon({
                 className: 'poi-icon',
                 backgroud: '#000',
@@ -431,6 +434,39 @@ L.PtvLayer.TruckAttributes = L.PtvLayer.extend({
         request.callerContext.properties[0].value = 'truckattributes';
 
         return request;
+    },
+
+    _groupObjects: function (objects) {
+        // group object infos by pixel coorinate
+        var mappedObjects = objects.reduce(function(map, obj) {
+            var id = obj.pixel.x+"_"+obj.pixel.y;
+            if(map[id])
+                map[id].descr = map[id].descr + "###" + obj.descr;
+            else
+                map[id] = obj;
+            return map;
+        }, {});
+
+        let result = [];
+        for (let key in mappedObjects) {
+            result.push(mappedObjects[key])
+        }
+
+        return result;
+    },
+
+    _formatTooltip: function (description) {
+        var fields = description.split('###');
+        var response = '';
+        for (var p = 0; p < fields.length; p++) {
+            if (p === 0) {
+                response = fields[p];
+            } else {
+                response += '</br>' + fields[p];
+            }
+        }
+
+        return response;
     }
 });
 
